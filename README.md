@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DriveMind — RAG over Google Drive
 
 > **Your personal ChatGPT over Google Drive.**
@@ -648,4 +647,4 @@ Repeated queries (e.g. "what is the refund policy?" asked multiple times) hit th
 | ✅ Metadata filtering | POST /ask/filtered by filename |
 | ✅ Async pipeline | FastAPI async endpoints + executor for CPU work |
 | ✅ Architecture folders | connectors/ processing/ embedding/ search/ api/ |
->>>>>>> 8eb98a7183f26eedca7cd3663615fc3ea57da40f
+
