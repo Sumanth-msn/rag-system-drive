@@ -114,14 +114,13 @@ Open http://localhost:8501 in your browser.
 4. Switch to **Chat** tab and ask questions!
 
 ---
-
-## 🔌 API Reference
+# API Reference & Live Examples
 
 ---
 
-### `POST /sync-drive`
+## `POST /sync-drive`
 
-Fetches and indexes documents from Google Drive using **MD5 hashing** for efficient incremental updates — only new or modified files are re-processed.
+Fetch and index documents from Google Drive using MD5 hashing for incremental updates.
 
 **Request Body**
 
@@ -133,23 +132,15 @@ Fetches and indexes documents from Google Drive using **MD5 hashing** for effici
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `folder_id` | `string \| null` | `null` | Google Drive folder ID. Leave `null` to sync all accessible files. |
-| `force_full` | `boolean` | `false` | If `true`, ignores the incremental cache and re-processes all files. |
-| `max_files` | `integer` | `200` | Upper limit on the number of files fetched per sync run. |
+**Live Response — First Sync**
 
-<details>
-<summary><strong>Live Response — First Sync (all files downloaded)</strong></summary>
+Downloads all files and builds the full index from scratch.
 
 ```json
 "Synced 7 new files, skipped 0 unchanged, added 378 chunks to knowledge base"
 ```
 
-</details>
-
-<details>
-<summary><strong>Live Response — Incremental Sync (2 files updated on Drive)</strong></summary>
+**Live Response — Incremental Sync** *(next day, 2 files updated on Drive)*
 
 ```json
 {
@@ -169,13 +160,11 @@ Fetches and indexes documents from Google Drive using **MD5 hashing** for effici
 }
 ```
 
-</details>
-
 ---
 
-### `POST /ask`
+## `POST /ask`
 
-Answers a natural language question using the full **hybrid retrieval pipeline** — FAISS vector search combined with BM25 keyword search, re-ranked by a Cross-Encoder, and answered by **Groq LLaMA3**. Supports conversation history and response caching.
+Answer a question using the hybrid retrieval pipeline (FAISS + BM25) with Groq LLaMA3.
 
 **Request Body**
 
@@ -187,14 +176,7 @@ Answers a natural language question using the full **hybrid retrieval pipeline**
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `query` | `string` | — | The user's natural language question. |
-| `chat_history` | `array` | `[]` | Previous `{ question, answer }` turns for conversational context (last 5 used). |
-| `use_cache` | `boolean` | `true` | If `true`, returns a cached answer on repeated queries. |
-
-<details>
-<summary><strong>Live Response</strong></summary>
+**Live Response**
 
 ```json
 {
@@ -219,13 +201,11 @@ Answers a natural language question using the full **hybrid retrieval pipeline**
 }
 ```
 
-</details>
-
 ---
 
-### `POST /ask/filtered`
+## `POST /ask/filtered`
 
-Identical to `/ask` but restricts retrieval to a **specified subset of documents**, eliminating cross-document noise for targeted queries.
+Search restricted to specific document files to eliminate retrieval noise.
 
 **Request Body**
 
@@ -237,14 +217,7 @@ Identical to `/ask` but restricts retrieval to a **specified subset of documents
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `query` | `string` | The user's natural language question. |
-| `file_names` | `array[string]` | List of document filenames to restrict retrieval to. |
-| `chat_history` | `array` | Previous `{ question, answer }` turns for conversational context. |
-
-<details>
-<summary><strong>Live Response</strong></summary>
+**Live Response**
 
 ```json
 {
@@ -255,19 +228,13 @@ Identical to `/ask` but restricts retrieval to a **specified subset of documents
 }
 ```
 
-</details>
-
 ---
 
 ## Sample Showcases
 
-Real queries run against indexed documents demonstrating DriveMind's cross-domain retrieval quality.
+### Showcase 1 — Corporate Strategy & Terms (Netflix)
 
----
-
-### Showcase 1 — Corporate Policy Extraction (Netflix)
-
-> **Query:** `"what are the Netflix company policies?"`
+**Query:** `"what are the Netflix company policies?"`
 
 ```json
 {
@@ -281,7 +248,7 @@ Real queries run against indexed documents demonstrating DriveMind's cross-domai
 
 ### Showcase 2 — Technical SOP Extraction (Amazon)
 
-> **Query:** `"tell me about SOP of Amazon"`
+**Query:** `"tell me about SOP of Amazon"`
 
 ```json
 {
@@ -297,7 +264,7 @@ Real queries run against indexed documents demonstrating DriveMind's cross-domai
 
 ### Showcase 3 — Global Policy & Human Rights (Meta)
 
-> **Query:** `"what is meta's policy?"`
+**Query:** `"what is meta's policy?"`
 
 ```json
 {
@@ -308,7 +275,6 @@ Real queries run against indexed documents demonstrating DriveMind's cross-domai
   ]
 }
 ```
-
 ---
 
 ## Design Decisions
