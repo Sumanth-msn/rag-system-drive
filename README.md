@@ -647,4 +647,3 @@ Repeated queries (e.g. "what is the refund policy?" asked multiple times) hit th
 | ✅ Metadata filtering | POST /ask/filtered by filename |
 | ✅ Async pipeline | FastAPI async endpoints + executor for CPU work |
 | ✅ Architecture folders | connectors/ processing/ embedding/ search/ api/ |
-
