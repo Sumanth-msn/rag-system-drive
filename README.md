@@ -9,7 +9,7 @@ Built for the Highwatch AI Platform Engineer Trial Assignment.
 
 ## Archirecture
 
-![DriveMind Architecture](DriveMind_Architecture.jpeg)
+![Architecture](DriveMind_Architecture.jpeg)
 
 
 ### Project Structure
