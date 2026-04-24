@@ -328,7 +328,7 @@ Repeated queries (e.g. "what is the refund policy?" asked multiple times) hit th
 | Frontend | Streamlit |
 | Google Drive | google-api-python-client + OAuth2 |
 | Embeddings | HuggingFace all-MiniLM-L6-v2 |
-| Vector Store | FAISS (persistent) |
+| Vector Store | FAISS |
 | Keyword Search | BM25 (rank-bm25) |
 | Re-ranking | CrossEncoder ms-marco-MiniLM-L-6-v2 |
 | LLM | Groq LLaMA3 70B (llama-3.3-70b-versatile) |
