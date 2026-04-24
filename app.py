@@ -1,10 +1,10 @@
 """
 app.py
 ──────
-Streamlit frontend for DocMind Google Drive RAG system.
+Streamlit frontend for DriveMind Google Drive RAG system.
 
 Communicates with the FastAPI backend via HTTP.
-Keeps all the visual quality of the original DocMind UI.
+Midnight Royal luxury aesthetic — electric indigo + azure mist on obsidian.
 
 Tabs:
   💬 Chat     — Q&A over synced Drive documents
@@ -28,62 +28,460 @@ from src.chat_history import (
 API_BASE = "http://localhost:8000"
 
 st.set_page_config(
-    page_title="DocMind Drive — RAG Q&A",
-    page_icon="📚",
+    page_title="DriveMind — RAG Q&A",
+    page_icon="🌌",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Styles (preserved from original DocMind) ──────────────────────────────────
+# ── Styles — Midnight Royal Luxury Aesthetic ──────────────────────────────────
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ── Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-html, body, .stApp { background-color: #0a0a0f !important; color: #e8e8f0 !important; font-family: 'Space Grotesk', sans-serif !important; }
-[data-testid="stSidebar"] { background-color: #0f0f18 !important; border-right: 1px solid #1e1e2e !important; }
-[data-testid="stSidebar"] * { color: #e8e8f0 !important; }
-[data-testid="stHeader"] { background: #0a0a0f !important; border-bottom: 1px solid #1e1e2e; }
+/* ── CSS Variables ── */
+:root {
+    --obsidian:        #020617;
+    --midnight:        #0f172a;
+    --slate-deep:      #1e293b;
+    --slate-mid:       #334155;
+    --slate-muted:     #475569;
+    --indigo:          #6366f1;
+    --indigo-dim:      rgba(99, 102, 241, 0.15);
+    --indigo-glow:     rgba(99, 102, 241, 0.25);
+    --indigo-border:   rgba(99, 102, 241, 0.35);
+    --azure:           #38bdf8;
+    --azure-dim:       rgba(56, 189, 248, 0.12);
+    --azure-border:    rgba(56, 189, 248, 0.3);
+    --white-high:      #f1f5f9;
+    --white-mid:       #cbd5e1;
+    --white-low:       #64748b;
+    --white-ghost:     rgba(255, 255, 255, 0.06);
+    --white-border:    rgba(255, 255, 255, 0.08);
+    --glass-bg:        rgba(15, 23, 42, 0.75);
+    --glass-border:    rgba(255, 255, 255, 0.07);
+    --radius-sm:       8px;
+    --radius-md:       12px;
+    --radius-lg:       16px;
+    --radius-xl:       20px;
+}
 
-.app-header { background: linear-gradient(135deg, #1a0533 0%, #0d1f4e 50%, #001a2e 100%); border: 1px solid #2a1a4e; border-radius: 16px; padding: 2rem 2.5rem; margin-bottom: 1.5rem; }
-.app-header h1 { font-size: 1.8rem; font-weight: 700; margin: 0 0 0.4rem 0; background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.app-header p { font-size: 0.82rem; color: #7c7c9a !important; margin: 0; font-family: 'JetBrains Mono', monospace; }
-.pill { display: inline-block; background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); color: #a78bfa !important; border-radius: 20px; padding: 3px 12px; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; margin: 3px 3px 0 0; }
+/* ── Global Reset ── */
+html, body, .stApp {
+    background-color: var(--obsidian) !important;
+    color: var(--white-high) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
 
-.stTextInput input { background: #0f0f18 !important; border: 1.5px solid #2a2a3e !important; border-radius: 12px !important; color: #e8e8f0 !important; font-size: 0.95rem !important; padding: 0.7rem 1rem !important; }
-.stTextInput input:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.15) !important; }
-.stTextInput input::placeholder { color: #4a4a6a !important; }
-.stTextInput label { color: #e8e8f0 !important; }
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0a0f1e 0%, var(--midnight) 60%, #080d1a 100%) !important;
+    border-right: 1px solid var(--glass-border) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+[data-testid="stSidebar"] * {
+    color: var(--white-mid) !important;
+}
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: var(--white-high) !important;
+}
+[data-testid="stSidebar"] .stMarkdown h2 {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--white-high) !important;
+    margin-bottom: 0 !important;
+}
 
-.stButton > button { background: linear-gradient(135deg, #7c3aed, #4f46e5) !important; color: #ffffff !important; border: none !important; border-radius: 10px !important; font-weight: 600 !important; font-size: 0.88rem !important; padding: 0.5rem 1.2rem !important; }
-.stButton > button:hover { opacity: 0.88 !important; }
-.stButton > button:disabled { background: #1e1e2e !important; color: #4a4a6a !important; }
+/* ── Header bar ── */
+[data-testid="stHeader"] {
+    background: var(--obsidian) !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+}
 
-.user-bubble { background: linear-gradient(135deg, #2d1b69, #1e3a8a); border: 1px solid #3730a3; color: #e8e8f0 !important; border-radius: 16px 16px 4px 16px; padding: 0.9rem 1.2rem; margin: 0.6rem 0 0.6rem 4rem; font-size: 0.93rem; line-height: 1.6; }
-.assistant-bubble { background: #0f0f18; border: 1px solid #1e1e2e; color: #e8e8f0 !important; border-radius: 16px 16px 16px 4px; padding: 1rem 1.2rem; margin: 0.6rem 4rem 0.6rem 0; font-size: 0.93rem; line-height: 1.8; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
-.label-you { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #7c3aed !important; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.3rem; text-align: right; }
-.label-ai { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #34d399 !important; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.3rem; }
+/* ── Text inputs ── */
+.stTextInput input {
+    background: var(--midnight) !important;
+    border: 1.5px solid var(--slate-mid) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--white-high) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.92rem !important;
+    padding: 0.65rem 1rem !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.stTextInput input:focus {
+    border-color: var(--indigo) !important;
+    box-shadow: 0 0 0 3px var(--indigo-dim), 0 0 16px var(--indigo-dim) !important;
+    outline: none !important;
+}
+.stTextInput input::placeholder { color: var(--slate-muted) !important; }
+.stTextInput label { color: var(--white-mid) !important; font-size: 0.82rem !important; }
 
-.source-card { background: #0a0a0f; border: 1px solid #1e1e2e; border-left: 3px solid #7c3aed; border-radius: 0 10px 10px 0; padding: 0.8rem 1rem; margin: 0.5rem 0; }
-.source-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #7c3aed !important; font-weight: 600; margin-bottom: 0.4rem; text-transform: uppercase; }
-.source-text { color: #9898b8 !important; font-size: 0.82rem; line-height: 1.6; }
+/* ── Buttons ── */
+.stButton > button {
+    background: linear-gradient(135deg, var(--indigo) 0%, #4f46e5 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.86rem !important;
+    letter-spacing: 0.02em !important;
+    padding: 0.55rem 1.2rem !important;
+    transition: opacity 0.18s, box-shadow 0.18s !important;
+    box-shadow: 0 0 14px var(--indigo-dim) !important;
+}
+.stButton > button:hover {
+    opacity: 0.88 !important;
+    box-shadow: 0 0 24px var(--indigo-glow) !important;
+}
+.stButton > button:disabled {
+    background: var(--slate-deep) !important;
+    color: var(--white-low) !important;
+    box-shadow: none !important;
+}
 
-.chip { display: inline-block; background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.25); color: #a78bfa !important; border-radius: 20px; padding: 2px 10px; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; margin: 2px; }
-.drive-badge { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: #34d399 !important; border-radius: 20px; padding: 3px 12px; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; display: inline-block; margin-bottom: 0.5rem; }
-.session-date { font-size: 0.68rem; color: #4a4a6a !important; font-family: 'JetBrains Mono', monospace; margin: 0.5rem 0 0.2rem 0; text-transform: uppercase; letter-spacing: 0.5px; }
+/* ── Tabs as Segmented Controls ── */
+[data-testid="stTabs"] [role="tablist"] {
+    background: var(--midnight) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 4px !important;
+    gap: 2px !important;
+    display: inline-flex !important;
+}
+[data-testid="stTabs"] [role="tab"] {
+    background: transparent !important;
+    color: var(--white-low) !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.83rem !important;
+    letter-spacing: 0.025em !important;
+    padding: 0.4rem 1.1rem !important;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s !important;
+}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    background: linear-gradient(135deg, var(--indigo) 0%, #4338ca 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px var(--indigo-glow) !important;
+}
+[data-testid="stTabs"] [role="tab"]:hover:not([aria-selected="true"]) {
+    background: var(--white-ghost) !important;
+    color: var(--white-mid) !important;
+}
+[data-testid="stTabsContent"] {
+    border: none !important;
+    background: transparent !important;
+}
 
-[data-testid="stMetric"] { background: #0f0f18 !important; border: 1px solid #1e1e2e !important; border-radius: 10px !important; padding: 0.8rem !important; }
-[data-testid="stMetricLabel"] { color: #7c7c9a !important; }
-[data-testid="stMetricValue"] { color: #a78bfa !important; }
-[data-testid="stExpander"] { background: #0f0f18 !important; border: 1px solid #1e1e2e !important; border-radius: 10px !important; }
-hr { border-color: #1e1e2e !important; }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0a0a0f; }
-::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 3px; }
-p, span, div, li { color: #e8e8f0; }
-h1, h2, h3, h4 { color: #e8e8f0 !important; }
-.stMarkdown p { color: #e8e8f0 !important; }
-.footer-text { font-size: 0.72rem; color: #3a3a5a !important; font-family: 'JetBrains Mono', monospace; line-height: 1.8; }
+/* ── Metrics ── */
+[data-testid="stMetric"] {
+    background: var(--midnight) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 1rem 1.2rem !important;
+    backdrop-filter: blur(8px) !important;
+}
+[data-testid="stMetricLabel"] { color: var(--white-low) !important; font-size: 0.76rem !important; letter-spacing: 0.05em !important; text-transform: uppercase !important; }
+[data-testid="stMetricValue"] { color: var(--indigo) !important; font-weight: 700 !important; }
+
+/* ── Expanders ── */
+[data-testid="stExpander"] {
+    background: var(--midnight) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-md) !important;
+}
+[data-testid="stExpander"] summary {
+    color: var(--white-mid) !important;
+    font-size: 0.84rem !important;
+    font-weight: 600 !important;
+}
+
+/* ── Multiselect ── */
+[data-testid="stMultiSelect"] > div {
+    background: var(--midnight) !important;
+    border: 1.5px solid var(--slate-mid) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--white-high) !important;
+}
+.stMultiSelect span[data-baseweb="tag"] {
+    background: var(--indigo-dim) !important;
+    border: 1px solid var(--indigo-border) !important;
+    border-radius: 6px !important;
+    color: #a5b4fc !important;
+}
+
+/* ── Slider ── */
+[data-testid="stSlider"] [role="slider"] {
+    background: var(--indigo) !important;
+    box-shadow: 0 0 10px var(--indigo-glow) !important;
+}
+[data-testid="stSlider"] [data-testid="stSliderTrackFill"] {
+    background: linear-gradient(90deg, var(--indigo), var(--azure)) !important;
+}
+
+/* ── Checkboxes ── */
+[data-testid="stCheckbox"] label {
+    color: var(--white-mid) !important;
+    font-size: 0.86rem !important;
+}
+
+/* ── Info / Warning / Error ── */
+[data-testid="stAlert"] {
+    background: var(--midnight) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--white-mid) !important;
+}
+
+/* ── HR / divider ── */
+hr { border-color: var(--glass-border) !important; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--obsidian); }
+::-webkit-scrollbar-thumb { background: var(--slate-mid); border-radius: 3px; }
+
+/* ── General text ── */
+p, span, div, li { color: var(--white-high); }
+h1, h2, h3, h4 { color: var(--white-high) !important; }
+.stMarkdown p { color: var(--white-high) !important; }
+
+/* ────────────────────────────────────────────
+   CUSTOM COMPONENT CLASSES
+   ──────────────────────────────────────────── */
+
+/* Hero Header */
+.dm-hero {
+    background: linear-gradient(135deg, #0d1340 0%, #070d24 40%, var(--obsidian) 100%);
+    border: 1px solid var(--indigo-border);
+    border-radius: var(--radius-xl);
+    padding: 2.2rem 2.8rem;
+    margin-bottom: 1.6rem;
+    position: relative;
+    overflow: hidden;
+}
+.dm-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.dm-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 40%;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(56,189,248,0.10) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.dm-hero-wordmark {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--azure) !important;
+    margin-bottom: 0.5rem;
+}
+.dm-hero h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 1.9rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 0.4rem 0 !important;
+    background: linear-gradient(90deg, #e0e7ff 0%, var(--azure) 55%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.dm-hero p {
+    font-size: 0.83rem !important;
+    color: var(--white-low) !important;
+    margin: 0 0 1rem 0 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    letter-spacing: 0.01em;
+}
+.dm-pill {
+    display: inline-block;
+    background: rgba(99,102,241,0.10);
+    border: 1px solid rgba(99,102,241,0.22);
+    color: #a5b4fc !important;
+    border-radius: 20px;
+    padding: 3px 11px;
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    margin: 3px 3px 0 0;
+    letter-spacing: 0.03em;
+}
+
+/* Drive badge in sidebar */
+.dm-drive-badge {
+    background: rgba(56,189,248,0.08);
+    border: 1px solid var(--azure-border);
+    color: var(--azure) !important;
+    border-radius: var(--radius-md);
+    padding: 5px 12px;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.03em;
+}
+.dm-drive-badge-warn {
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.28);
+    color: #fbbf24 !important;
+    border-radius: var(--radius-md);
+    padding: 5px 12px;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 0.4rem;
+}
+
+/* Chat bubbles */
+.dm-label-you {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: #818cf8 !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.25rem;
+    text-align: right;
+}
+.dm-label-ai {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--azure) !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.25rem;
+}
+.dm-user-bubble {
+    background: linear-gradient(135deg, #1a1f4e 0%, #1e2d5a 100%);
+    border: 1px solid var(--indigo-border);
+    border-right: 3px solid var(--indigo);
+    color: var(--white-high) !important;
+    border-radius: 16px 4px 16px 16px;
+    padding: 0.9rem 1.2rem;
+    margin: 0.4rem 0 0.4rem 5rem;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.dm-assistant-bubble {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-left: 3px solid var(--azure);
+    color: var(--white-high) !important;
+    border-radius: 4px 16px 16px 16px;
+    padding: 1rem 1.3rem;
+    margin: 0.4rem 5rem 0.4rem 0;
+    font-size: 0.92rem;
+    line-height: 1.8;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 0 24px rgba(99,102,241,0.13), 0 8px 32px rgba(0,0,0,0.4);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.dm-meta {
+    color: var(--slate-muted) !important;
+    font-size: 0.67rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+}
+
+/* Source cards */
+.dm-source-card {
+    background: var(--midnight);
+    border: 1px solid var(--glass-border);
+    border-left: 3px solid var(--indigo);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    padding: 0.7rem 1rem;
+    margin: 0.4rem 0;
+}
+.dm-source-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: #818cf8 !important;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* Chips */
+.dm-chip {
+    display: inline-block;
+    background: var(--indigo-dim);
+    border: 1px solid var(--indigo-border);
+    color: #a5b4fc !important;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 2px;
+    letter-spacing: 0.03em;
+}
+
+/* Session date headers */
+.dm-session-date {
+    font-size: 0.62rem;
+    color: var(--slate-muted) !important;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0.7rem 0 0.25rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+}
+
+/* Footer */
+.dm-footer {
+    font-size: 0.68rem;
+    color: var(--slate-mid) !important;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 2;
+    letter-spacing: 0.03em;
+}
+
+/* Sidebar title */
+.dm-sidebar-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--white-high) !important;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.dm-sidebar-section {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--white-low) !important;
+    margin-bottom: 0.5rem;
+    margin-top: 0.2rem;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -120,7 +518,10 @@ def api_post(path: str, data: dict, timeout: int = 300):
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 📚 DocMind Drive")
+    st.markdown(
+        "<div class='dm-sidebar-title'>🌌 DriveMind</div>",
+        unsafe_allow_html=True,
+    )
     st.divider()
 
     # API Status
@@ -131,12 +532,12 @@ with st.sidebar:
         docs = status.get("index", {}).get("total_documents", 0)
         if chunks > 0:
             st.markdown(
-                f"<span class='drive-badge'>✅ {docs} docs · {chunks} chunks indexed</span>",
+                f"<span class='dm-drive-badge'>✅ {docs} docs · {chunks} chunks indexed</span>",
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                "<span class='drive-badge' style='color:#fbbf24 !important; border-color:rgba(251,191,36,0.3) !important;'>⚠️ No documents indexed</span>",
+                "<span class='dm-drive-badge-warn'>⚠️ No documents indexed</span>",
                 unsafe_allow_html=True,
             )
     else:
@@ -145,7 +546,9 @@ with st.sidebar:
     st.divider()
 
     # Quick sync button
-    st.markdown("### 🔄 Quick Sync")
+    st.markdown(
+        "<div class='dm-sidebar-section'>🔄 Quick Sync</div>", unsafe_allow_html=True
+    )
     if st.button("Sync Google Drive", use_container_width=True):
         with st.spinner("Syncing Drive..."):
             result, code = api_post("/sync-drive", {})
@@ -157,17 +560,19 @@ with st.sidebar:
 
     if st.session_state.chat_history:
         st.divider()
-        if st.button("🗑️ Clear Chat", use_container_width=True):
+        if st.button("Clear Chat", use_container_width=True):
             st.session_state.chat_history = []
             st.session_state.current_session = create_new_session()
             st.rerun()
 
     st.divider()
-    st.markdown("### 🕐 Chat History")
+    st.markdown(
+        "<div class='dm-sidebar-section'>🕐 Chat History</div>", unsafe_allow_html=True
+    )
     all_sessions = get_all_sessions()
     if not all_sessions:
         st.markdown(
-            "<p style='color:#4a4a6a; font-size:0.78rem;'>No saved sessions yet.</p>",
+            "<p style='color:#334155; font-size:0.76rem; font-family:JetBrains Mono,monospace;'>No saved sessions yet.</p>",
             unsafe_allow_html=True,
         )
     else:
@@ -176,7 +581,8 @@ with st.sidebar:
             if not sessions:
                 continue
             st.markdown(
-                f"<div class='session-date'>{group_name}</div>", unsafe_allow_html=True
+                f"<div class='dm-session-date'>{group_name}</div>",
+                unsafe_allow_html=True,
             )
             for session in sessions:
                 label = format_session_label(session)
@@ -197,27 +603,28 @@ with st.sidebar:
 
     st.divider()
     st.markdown(
-        "<div class='footer-text'>Google Drive · FastAPI<br>FAISS MMR+BM25 · Groq LLaMA3<br>Cross-Encoder · Streamlit</div>",
+        "<div class='dm-footer'>Google Drive · FastAPI<br>FAISS MMR+BM25 · Groq LLaMA3<br>Cross-Encoder · Streamlit</div>",
         unsafe_allow_html=True,
     )
 
 
-# ── Header ────────────────────────────────────────────────────────────────────
+# ── Hero Header ───────────────────────────────────────────────────────────────
 st.markdown(
     """
-<div class='app-header'>
-    <h1>📚 DocMind Drive — RAG Q&A</h1>
-    <p>Your personal ChatGPT over Google Drive. Powered by LLaMA3 + Hybrid Search + Re-ranking.</p>
+<div class='dm-hero'>
+    <div class='dm-hero-wordmark'>DriveMind ·The Intelligence Layer for your Drive.</div>
+    <h1>DriveMind — RAG Q&A</h1>
+    <p>Your private AI over Google Drive. Powered by LLaMA3 + Hybrid Search + Re-ranking.</p>
     <div style='margin-top:0.8rem;'>
-        <span class='pill'>Google Drive</span>
-        <span class='pill'>Incremental Sync</span>
-        <span class='pill'>Hybrid MMR+BM25</span>
-        <span class='pill'>Cross-Encoder Re-ranking</span>
-        <span class='pill'>Conversational Memory</span>
-        <span class='pill'>Source Attribution</span>
-        <span class='pill'>Metadata Filtering</span>
-        <span class='pill'>Answer Caching</span>
-        <span class='pill'>FastAPI Backend</span>
+        <span class='dm-pill'>Google Drive</span>
+        <span class='dm-pill'>Incremental Sync</span>
+        <span class='dm-pill'>Hybrid MMR+BM25</span>
+        <span class='dm-pill'>Cross-Encoder Re-ranking</span>
+        <span class='dm-pill'>Conversational Memory</span>
+        <span class='dm-pill'>Source Attribution</span>
+        <span class='dm-pill'>Metadata Filtering</span>
+        <span class='dm-pill'>Answer Caching</span>
+        <span class='dm-pill'>FastAPI Backend</span>
     </div>
 </div>
 """,
@@ -226,7 +633,7 @@ st.markdown(
 
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_chat, tab_sync, tab_docs = st.tabs(["💬 Chat", "🔄 Drive Sync", "📁 Documents"])
+tab_chat, tab_sync, tab_docs = st.tabs(["Chat", "🔄 Drive Sync", "📁 Documents"])
 
 
 # ═══════════════════════════════════════════
@@ -341,26 +748,25 @@ with tab_chat:
         for turn in reversed(st.session_state.chat_history):
             cached_badge = " · 💾 cached" if turn.get("cached") else ""
             filtered_badge = (
-                f" · 🔍 filtered: {', '.join(turn['filtered_to'])}"
+                f" · 🔍 {', '.join(turn['filtered_to'])}"
                 if turn.get("filtered_to")
                 else ""
             )
 
-            st.markdown("<div class='label-you'>You</div>", unsafe_allow_html=True)
+            st.markdown("<div class='dm-label-you'>You</div>", unsafe_allow_html=True)
             st.markdown(
-                f"<div class='user-bubble'>{turn['question']}</div>",
+                f"<div class='dm-user-bubble'>{turn['question']}</div>",
                 unsafe_allow_html=True,
             )
             st.markdown(
-                f"<span style='color:#3a3a5a; font-size:0.7rem; font-family:monospace;'>"
-                f"{turn.get('elapsed', '')}s{cached_badge}{filtered_badge}</span>",
+                f"<div class='dm-meta'>{turn.get('elapsed', '')}s{cached_badge}{filtered_badge}</div>",
                 unsafe_allow_html=True,
             )
             st.markdown(
-                "<div class='label-ai'>DocMind Drive</div>", unsafe_allow_html=True
+                "<div class='dm-label-ai'>DriveMind</div>", unsafe_allow_html=True
             )
             st.markdown(
-                f"<div class='assistant-bubble'>{turn['answer']}</div>",
+                f"<div class='dm-assistant-bubble'>{turn['answer']}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -373,15 +779,15 @@ with tab_chat:
                     if source_details:
                         for detail in source_details:
                             st.markdown(
-                                f"<div class='source-card'>"
-                                f"<div class='source-label'>📄 {detail.get('file_name', '')} · Page {detail.get('page', 1)} · {detail.get('source', 'gdrive')}</div>"
+                                f"<div class='dm-source-card'>"
+                                f"<div class='dm-source-label'>📄 {detail.get('file_name', '')} · Page {detail.get('page', 1)} · {detail.get('source', 'gdrive')}</div>"
                                 f"</div>",
                                 unsafe_allow_html=True,
                             )
                     else:
                         for src in sources:
                             st.markdown(
-                                f"<div class='source-card'><div class='source-label'>📄 {src}</div></div>",
+                                f"<div class='dm-source-card'><div class='dm-source-label'>📄 {src}</div></div>",
                                 unsafe_allow_html=True,
                             )
 
@@ -394,7 +800,7 @@ with tab_chat:
 with tab_sync:
     st.markdown("### 🔄 Google Drive Sync")
     st.markdown(
-        "<p style='color:#7c7c9a; font-size:0.85rem;'>Connect to Google Drive and sync documents into the knowledge base. Incremental sync only fetches new or modified files.</p>",
+        "<p style='color:#64748b; font-size:0.84rem;'>Connect to Google Drive and sync documents into the knowledge base. Incremental sync only fetches new or modified files.</p>",
         unsafe_allow_html=True,
     )
 
@@ -446,7 +852,7 @@ with tab_sync:
                     with st.expander("📄 Processed files"):
                         for f in stats["processed_files"]:
                             st.markdown(
-                                f"<span class='chip'>✅ {f}</span>",
+                                f"<span class='dm-chip'>✅ {f}</span>",
                                 unsafe_allow_html=True,
                             )
 
@@ -478,7 +884,7 @@ with tab_sync:
 
     # Current status
     st.divider()
-    st.markdown("### 📊 Index Status")
+    st.markdown("### Index Status")
     status = api_get("/status")
     if status:
         index = status.get("index", {})
@@ -490,7 +896,7 @@ with tab_sync:
 
         if sync.get("last_sync"):
             st.markdown(
-                f"<span class='chip'>Last sync: {sync['last_sync'][:19]}</span>",
+                f"<span class='dm-chip'>Last sync: {sync['last_sync'][:19]}</span>",
                 unsafe_allow_html=True,
             )
 
@@ -504,7 +910,7 @@ with tab_sync:
 with tab_docs:
     st.markdown("### 📁 Indexed Documents")
     st.markdown(
-        "<p style='color:#7c7c9a; font-size:0.85rem;'>All documents currently in the knowledge base, sourced from Google Drive.</p>",
+        "<p style='color:#64748b; font-size:0.84rem;'>All documents currently in the knowledge base, sourced from Google Drive.</p>",
         unsafe_allow_html=True,
     )
 
