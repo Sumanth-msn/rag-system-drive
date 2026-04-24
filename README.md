@@ -115,150 +115,198 @@ Open http://localhost:8501 in your browser.
 
 ---
 
-## API Reference
+## 🔌 API Reference
+
+---
 
 ### `POST /sync-drive`
 
-Fetch and index documents from Google Drive.
+Fetches and indexes documents from Google Drive using **MD5 hashing** for efficient incremental updates — only new or modified files are re-processed.
+
+**Request Body**
 
 ```json
-// Request
 {
-  "folder_id": null,        // optional: limit to specific folder
-  "force_full": false,      // if true: re-process all files
-  "max_files": 200          // max files to consider
+  "folder_id": null,
+  "force_full": false,
+  "max_files": 200
 }
+```
 
-// Response
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `folder_id` | `string \| null` | `null` | Google Drive folder ID. Leave `null` to sync all accessible files. |
+| `force_full` | `boolean` | `false` | If `true`, ignores the incremental cache and re-processes all files. |
+| `max_files` | `integer` | `200` | Upper limit on the number of files fetched per sync run. |
+
+<details>
+<summary><strong>Live Response — First Sync (all files downloaded)</strong></summary>
+
+```json
+"Synced 7 new files, skipped 0 unchanged, added 378 chunks to knowledge base"
+```
+
+</details>
+
+<details>
+<summary><strong>Live Response — Incremental Sync (2 files updated on Drive)</strong></summary>
+
+```json
 {
   "status": "success",
-  "message": "Synced 12 new/updated file(s), skipped 8 unchanged, added 847 chunks.",
+  "message": "Synced 2 new/updated file(s), skipped 7 unchanged, added 550 chunks to knowledge base.",
   "stats": {
-    "total_on_drive": 20,
-    "fetched": 12,
-    "skipped_unchanged": 8,
-    "chunks_added": 847,
-    "processed_files": ["policy.pdf", "sop.docx", "handbook.txt"],
+    "total_on_drive": 9,
+    "fetched": 2,
+    "skipped_unchanged": 7,
     "errors": [],
-    "sync_time": "2026-04-23T14:30:00",
-    "incremental": true
+    "sync_time": "2026-04-25T00:41:55.327588",
+    "incremental": true,
+    "chunks_added": 0,
+    "processed_files": [],
+    "failed_files": []
   }
 }
 ```
 
+</details>
+
+---
+
 ### `POST /ask`
 
-Answer a question from the knowledge base.
+Answers a natural language question using the full **hybrid retrieval pipeline** — FAISS vector search combined with BM25 keyword search, re-ranked by a Cross-Encoder, and answered by **Groq LLaMA3**. Supports conversation history and response caching.
+
+**Request Body**
 
 ```json
-// Request
 {
-  "query": "What are our company policies on compliance?",
-  "chat_history": [],       // optional: previous Q&A for memory
-  "use_cache": true         // cache repeated queries for 1hr
-}
-
-// Response
-{
-  "answer": "According to the compliance policy document, all employees must complete annual compliance training by Q1. The policy requires...",
-  "sources": ["compliance_policy.pdf", "employee_handbook.docx"],
-  "source_details": [
-    {"file_name": "compliance_policy.pdf", "doc_id": "1abc...", "page": 3, "source": "gdrive"},
-    {"file_name": "employee_handbook.docx", "doc_id": "2def...", "page": 7, "source": "gdrive"}
-  ],
-  "cached": false,
-  "query": "What are our company policies on compliance?"
+  "query": "what is google's policy?",
+  "chat_history": [],
+  "use_cache": true
 }
 ```
 
-### `POST /ask/filtered`
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `query` | `string` | — | The user's natural language question. |
+| `chat_history` | `array` | `[]` | Previous `{ question, answer }` turns for conversational context (last 5 used). |
+| `use_cache` | `boolean` | `true` | If `true`, returns a cached answer on repeated queries. |
 
-Search within specific documents only.
+<details>
+<summary><strong>Live Response</strong></summary>
 
 ```json
-// Request
 {
-  "query": "What is our refund policy?",
-  "file_names": ["refund_policy.pdf"],
+  "answer": "Google's policy applies to all of the services offered by Google LLC and its affiliates, including YouTube... The policy restricts access to personal information to Google employees, contractors and agents who need to know that information in order to process it for Google...",
+  "sources": ["google_privacy_policy_en.pdf"],
+  "source_details": [
+    {
+      "file_name": "google_privacy_policy_en.pdf",
+      "doc_id": "1jiOlm-Q_rGeM0Bnq05prmYvFZWJc2I3e",
+      "page": 4,
+      "source": "gdrive"
+    },
+    {
+      "file_name": "google_privacy_policy_en.pdf",
+      "doc_id": "1jiOlm-Q_rGeM0Bnq05prmYvFZWJc2I3e",
+      "page": 3,
+      "source": "gdrive"
+    }
+  ],
+  "cached": false,
+  "query": "what is google's policy?"
+}
+```
+
+</details>
+
+---
+
+### `POST /ask/filtered`
+
+Identical to `/ask` but restricts retrieval to a **specified subset of documents**, eliminating cross-document noise for targeted queries.
+
+**Request Body**
+
+```json
+{
+  "query": "How do I update my information?",
+  "file_names": ["google_privacy_policy_en.pdf"],
   "chat_history": []
 }
 ```
 
-### `GET /status`
+| Field | Type | Description |
+|---|---|---|
+| `query` | `string` | The user's natural language question. |
+| `file_names` | `array[string]` | List of document filenames to restrict retrieval to. |
+| `chat_history` | `array` | Previous `{ question, answer }` turns for conversational context. |
 
-System status and index stats.
+<details>
+<summary><strong>Live Response</strong></summary>
 
-### `GET /documents`
+```json
+{
+  "answer": "You can update your personal information by using the Google activity controls to decide what types of data you would like saved... You can also review and control certain types of information tied to your Google Account by using Google Dashboard.",
+  "sources": ["google_privacy_policy_en.pdf"],
+  "filtered_to": ["google_privacy_policy_en.pdf"],
+  "query": "How do I update my information?"
+}
+```
 
-List all indexed documents with chunk counts.
-
-### `DELETE /cache`
-
-Clear the answer cache (useful after re-syncing).
+</details>
 
 ---
 
-## Sample Queries and Outputs
+## Sample Showcases
 
-### Query 1: Policy Question
-```
-POST /ask
-{"query": "What is our refund policy?"}
+Real queries run against indexed documents demonstrating DriveMind's cross-domain retrieval quality.
 
-Response:
+---
+
+### Showcase 1 — Corporate Policy Extraction (Netflix)
+
+> **Query:** `"what are the Netflix company policies?"`
+
+```json
 {
-  "answer": "The refund policy states that customers are eligible for a full 
-             refund within 30 days of purchase. After 30 days, store credit 
-             is issued. Damaged or defective items qualify for immediate 
-             replacement regardless of purchase date.",
-  "sources": ["refund_policy.pdf"],
-  "source_details": [{"file_name": "refund_policy.pdf", "page": 2}]
+  "answer": "The Netflix company policies include disclosing user information to the Netflix family of companies for purposes such as data processing... Users agree not to archive, download, reproduce, or modify content without express written permission.",
+  "sources": ["theatrical-terms-and-privacy.pdf"],
+  "cached": true
 }
 ```
 
-### Query 2: SOP Question
-```
-POST /ask
-{"query": "What are the steps for employee onboarding?"}
+---
 
-Response:
+### Showcase 2 — Technical SOP Extraction (Amazon)
+
+> **Query:** `"tell me about SOP of Amazon"`
+
+```json
 {
-  "answer": "The onboarding process consists of 5 steps: 1) IT setup on Day 1,
-             2) HR orientation on Day 1-2, 3) Department introduction Week 1,
-             4) Training completion by Week 2, 5) 30-day check-in with manager.",
-  "sources": ["onboarding_sop.docx", "hr_handbook.pdf"],
-  "cached": false
+  "answer": "The SOP for Amazon is related to the testing and enrollment of fragile ASINs at the Amazon Packaging Lab... allowing them to test, enroll, and certify their fragile ASINs under 50 lbs. to help vendors transition to the Ships in Product Packaging (SIPP) program.",
+  "sources": [
+    "SOP-for-Quality-Improvement.pdf",
+    "sop-for-testing-and-enrollment-of-fragile-asins-at-amazon-lab-2024.pdf"
+  ]
 }
 ```
 
-### Query 3: Filtered Search
-```
-POST /ask/filtered
+---
+
+### Showcase 3 — Global Policy & Human Rights (Meta)
+
+> **Query:** `"what is meta's policy?"`
+
+```json
 {
-  "query": "What are the data retention requirements?",
-  "file_names": ["data_privacy_policy.pdf"]
+  "answer": "Meta's policy is guided by its mission to give people the power to build community... Principles include giving people a voice, serving everyone, promoting economic opportunity, and protecting privacy. Meta has Community Standards highlighting voice, authenticity, safety, privacy, and dignity.",
+  "sources": [
+    "Facebooks-Corporate-Human-Rights-Policy.pdf",
+    "Privacy-Within-Metas-Integrity-Systems.pdf"
+  ]
 }
-
-Response:
-{
-  "answer": "Per the data privacy policy, customer data must be retained for 
-             7 years for compliance purposes. Personal data not required for 
-             legal purposes must be deleted within 90 days of account closure.",
-  "sources": ["data_privacy_policy.pdf"],
-  "filtered_to": ["data_privacy_policy.pdf"]
-}
-```
-
-### Incremental Sync Example
-```
-# First sync: downloads all 20 files
-POST /sync-drive {}
-→ "Synced 20 new files, skipped 0 unchanged, added 1,240 chunks"
-
-# Second sync (next day, 2 files updated on Drive)  
-POST /sync-drive {}
-→ "Synced 2 new/updated files, skipped 18 unchanged, added 96 chunks"
-# 18x faster than full re-sync!
 ```
 
 ---
