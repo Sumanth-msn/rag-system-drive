@@ -1,13 +1,41 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-#environments
-.venv
+# Environment
 .env
+.venv/
+venv/
 
+# Google credentials (NEVER commit these)
+credentials/token.json
+credentials/credentials.json
+credentials/service_account.json
 
+# Generated stores
+faiss_store/index.faiss
+faiss_store/index.pkl
+faiss_store/chunks_cache.pkl
+faiss_store/sync_manifest.json
+faiss_store/doc_registry.json
+
+# Cache
+cache/
+
+# Chat sessions
+chat_sessions/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# uv
+.uv/
+uv.lock
