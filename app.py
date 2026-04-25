@@ -608,20 +608,70 @@ def api_post(path: str, data: dict, timeout: int = 300):
 
 
 # ── Confidence score helper ───────────────────────────────────────────────────
-def get_confidence_badge(confidence: int) -> str:
-    """
-    Render a confidence badge from the real 0-100 score returned by the API.
-    The score comes directly from the cross-encoder top rerank_score,
-    mapped to 0-100 in rag_chain.py. Zero means answer not found in docs.
-    """
-    pct = max(0, min(100, confidence))
+_NO_SCORE_HTML = (
+    "<span class='conf-badge' style='background:rgba(100,116,139,0.1);"
+    "border:1px solid rgba(100,116,139,0.2);color:#64748b !important;'>"
+    "— &nbsp;NO SCORE</span>"
+)
 
+_NOT_FOUND_ANSWER_PHRASES = [
+    "couldn't find",
+    "could not find",
+    "not find this",
+    "no information",
+    "not mentioned",
+    "does not contain",
+    "not available in",
+    "i don't have",
+    "not provided in",
+    "not in the uploaded",
+]
+
+
+def get_confidence_badge(confidence, answer: str = "") -> str:
+    """
+    Render a confidence badge.
+
+    Distinguishes four cases:
+      None  → key missing entirely (very old session) → NO SCORE (grey)
+      0 + answer has "not found" phrases → NOT FOUND (red) — genuine miss
+      0 + answer is a real answer → legacy zero saved before scoring existed
+                                    → NO SCORE (grey, not misleading red)
+      1-100 → real scored answer → VERIFIED / SOURCED / PARTIAL tier
+
+    This correctly handles sessions saved at different points in time:
+      - Sessions saved before confidence existed: key missing → None → NO SCORE
+      - Sessions saved when confidence defaulted to 0: value is 0, but answer
+        is real → detect via answer content → NO SCORE
+      - Sessions saved with LLM-as-judge: real score 1-100 → show tier
+      - Genuine not-found: score is 0 AND answer contains not-found phrases
+    """
+    # Case 1: key entirely missing (very old session)
+    if confidence is None:
+        return _NO_SCORE_HTML
+
+    pct = max(0, min(100, int(confidence)))
+
+    # Case 2: score is 0 — distinguish genuine not-found from legacy zero
     if pct == 0:
-        cls, icon, label = "conf-low", "○", "NOT FOUND · 0%"
-    elif pct >= 70:
-        cls, icon, label = "conf-high", "●", f"HIGH CONFIDENCE · {pct}%"
-    elif pct >= 40:
-        cls, icon, label = "conf-mid", "◐", f"MEDIUM · {pct}%"
+        answer_lower = answer.strip().lower()
+        is_genuine_not_found = any(p in answer_lower for p in _NOT_FOUND_ANSWER_PHRASES)
+        is_empty_answer = len(answer.strip()) < 10
+
+        if is_genuine_not_found or is_empty_answer:
+            # Real not-found response
+            return "<span class='conf-badge conf-low'>○&nbsp; NOT FOUND</span>"
+        else:
+            # Has a real answer but confidence=0 → legacy session saved with default 0
+            return _NO_SCORE_HTML
+
+    # Case 3: real scored answer
+    if pct >= 75:
+        cls, icon, label = "conf-high", "●", f"VERIFIED · {pct}%"
+    elif pct >= 35:
+        cls, icon, label = "conf-high", "◉", f"SOURCED · {pct}%"
+    elif pct >= 15:
+        cls, icon, label = "conf-mid", "◐", f"PARTIAL · {pct}%"
     else:
         cls, icon, label = "conf-low", "○", f"LOW · {pct}%"
 
@@ -847,8 +897,11 @@ with tab_chat:
                 "question": question,
                 "answer": result.get("answer", ""),
                 "sources": result.get("sources", []),
+                "source_details": result.get("source_details", []),
+                "confidence": result.get("confidence", 0),
                 "elapsed": elapsed,
                 "cached": result.get("cached", False),
+                "filtered_to": selected_files if selected_files else None,
             }
             st.session_state.current_session = add_message_to_session(
                 st.session_state.current_session, saveable
@@ -882,7 +935,9 @@ with tab_chat:
             )
 
             # ── Confidence + meta row (NEW) ──
-            conf_html = get_confidence_badge(turn.get("confidence", 0))
+            conf_html = get_confidence_badge(
+                turn.get("confidence"), turn.get("answer", "")
+            )
             elapsed_html = (
                 f"<span class='meta-chip'>{turn.get('elapsed', '')}s"
                 f"{cached_txt}{filtered_txt}</span>"
