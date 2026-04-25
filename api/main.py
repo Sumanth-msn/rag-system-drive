@@ -17,7 +17,7 @@ Architecture:
   Request → FastAPI → search/ → src/rag_chain.py → Groq LLaMA3
                      ↑ ask only
 
-process:
+Interview explanation:
 "I used FastAPI for the backend with async endpoints. The /sync-drive
 endpoint runs the full pipeline: Drive OAuth → file download → parsing
 → chunking → embedding → FAISS storage. The /ask endpoint retrieves
@@ -31,7 +31,7 @@ from contextlib import asynccontextmanager
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -40,7 +40,6 @@ from search.faiss_store import (
     add_chunks_to_store,
     get_store_stats,
     retrieve_with_metadata_filter,
-    retrieve_with_scores,
 )
 from connectors.gdrive import sync_drive
 from processing.chunker import chunk_drive_file
@@ -120,6 +119,7 @@ class AskResponse(BaseModel):
     answer: str
     sources: List[str]
     source_details: Optional[List[dict]] = []
+    confidence: int = 0
     cached: bool = False
     query: str
 
@@ -236,7 +236,6 @@ async def get_status():
 @app.post("/sync-drive", response_model=SyncDriveResponse, tags=["Sync"])
 async def sync_drive_endpoint(
     request: SyncDriveRequest,
-    background_tasks: BackgroundTasks,
 ):
     """
     Connect to Google Drive, fetch documents, and update the FAISS index.
@@ -346,6 +345,7 @@ async def ask(request: AskRequest):
             answer=result["answer"],
             sources=result["sources"],
             source_details=result.get("source_details", []),
+            confidence=result.get("confidence", 0),
             cached=result.get("cached", False),
             query=query,
         )
@@ -387,7 +387,8 @@ async def ask_filtered(request: FilteredAskRequest):
                 query=query,
                 retrieved_docs=docs,
                 chat_history=request.chat_history or [],
-                use_cache=False,  # don't cache filtered queries
+                use_cache=True,  # cache with filter key
+                filter_files=request.file_names,  # separate cache key per filter
             )
 
         result = await loop.run_in_executor(None, _filtered_retrieve_and_answer)
@@ -396,6 +397,7 @@ async def ask_filtered(request: FilteredAskRequest):
             "answer": result["answer"],
             "sources": result["sources"],
             "source_details": result.get("source_details", []),
+            "confidence": result.get("confidence", 0),
             "filtered_to": request.file_names,
             "query": query,
         }
@@ -412,9 +414,7 @@ async def list_documents():
     List all documents currently indexed in the knowledge base.
     Returns document names, chunk counts, and Drive file IDs.
     """
-    from search.faiss_store import load_doc_registry, _all_chunks
-
-    registry = load_doc_registry()
+    from search.faiss_store import _all_chunks
 
     # Build per-file stats from chunk metadata
     file_info = {}
