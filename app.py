@@ -25,7 +25,7 @@ from src.chat_history import (
 )
 
 # ── Config ────────────────────────────────────────────────────────────────────
-API_BASE = "http://localhost:8000"
+API_BASE = "https://scoop-bust-jailbreak.ngrok-free.dev"  # FastAPI backend URL (update with your ngrok URL)
 
 st.set_page_config(
     page_title="DriveMind — RAG Q&A",
